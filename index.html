@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f2ec">
+  <title>silent — private notes, simply shared</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f2ec;
+      --card: #fffefa;
+      --ink: #202522;
+      --muted: #777e78;
+      --line: #e9e7df;
+      --green: #286047;
+      --green-dark: #1e4b36;
+      --pale: #e8f0e9;
+      --shadow: 0 18px 55px rgba(37, 47, 40, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .page { max-width: 1050px; padding: 0 28px 48px; margin: 0 auto; }
+    header {
+      height: 86px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 750;
+      letter-spacing: -.04em;
+      font-size: 20px;
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--green);
+      color: white;
+      font-size: 15px;
+    }
+    .local-label {
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .local-label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: #68a477;
+      border-radius: 50%;
+    }
+    main { padding-top: 40px; }
+    .intro { max-width: 570px; margin: 0 auto 32px; text-align: center; }
+    .eyebrow {
+      color: var(--green);
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .16em;
+    }
+    h1 {
+      margin: 13px 0 10px;
+      font-size: clamp(36px, 5vw, 52px);
+      line-height: 1.04;
+      letter-spacing: -.055em;
+    }
+    .intro p { color: var(--muted); margin: 0; font-size: 15px; line-height: 1.65; }
+    .workspace {
+      background: var(--card);
+      border: 1px solid rgba(32,37,34,.07);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 10px;
+      background: #faf9f5;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab {
+      flex: 1;
+      padding: 13px 16px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+    .tab:hover { color: var(--ink); }
+    .tab[aria-selected="true"] {
+      color: var(--green-dark);
+      background: white;
+      box-shadow: 0 2px 8px rgba(30,45,34,.07);
+    }
+    .panel { display: none; padding: 28px; }
+    .panel.active { display: block; }
+    .field-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    label, .field-label { font-size: 13px; font-weight: 700; }
+    .hint { color: #929790; font-size: 12px; }
+    textarea, .result-box {
+      display: block;
+      width: 100%;
+      min-height: 148px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 15px 16px;
+      background: white;
+      color: var(--ink);
+      font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      outline: none;
+      transition: border-color .16s, box-shadow .16s;
+    }
+    textarea::placeholder { color: #adb1ab; }
+    textarea:focus {
+      border-color: #88a991;
+      box-shadow: 0 0 0 3px rgba(40,96,71,.09);
+    }
+    .message-area { font-family: inherit; font-size: 15px; }
+    .action-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin: 17px 0 22px;
+    }
+    .tiny-note { max-width: 390px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    button.primary, button.secondary {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 17px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s, background .15s;
+    }
+    button.primary { background: var(--green); color: white; white-space: nowrap; }
+    button.primary:hover { background: var(--green-dark); transform: translateY(-1px); }
+    button.secondary { color: var(--green-dark); background: var(--pale); }
+    button.secondary:hover { background: #dce9de; }
+    .output { border-top: 1px solid var(--line); padding-top: 20px; }
+    .output .field-head { margin-bottom: 10px; }
+    .output-box {
+      min-height: 92px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f8f8f3;
+      border: 1px dashed #d9ddd5;
+      color: #47534a;
+      overflow-wrap: anywhere;
+      font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    .output-box.empty {
+      display: flex;
+      align-items: center;
+      color: #a3a8a0;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .output-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .status { min-height: 18px; margin-top: 8px; color: var(--green); font-size: 12px; text-align: right; }
+    .how {
+      display: flex;
+      gap: 13px;
+      max-width: 630px;
+      margin: 22px auto 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .info-icon {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d6dcd4;
+      border-radius: 50%;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    footer { margin-top: 30px; color: #969b94; text-align: center; font-size: 11px; }
+    @media (max-width: 600px) {
+      .page { padding: 0 16px 32px; }
+      header { height: 68px; }
+      main { padding-top: 27px; }
+      .intro { margin-bottom: 23px; }
+      .intro p { font-size: 14px; }
+      .panel { padding: 20px 17px; }
+      .action-row { align-items: stretch; flex-direction: column; gap: 12px; }
+      .action-row .primary { width: 100%; }
+      .hint { font-size: 11px; }
+      .local-label { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">s</span> silent
+      </div>
+      <div class="local-label">Works right in your browser</div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div class="eyebrow">A little message magic</div>
+        <h1>Say it in secret.</h1>
+        <p>Turn a message into a code you can share. Paste the code here later to reveal what it says.</p>
+      </section>
+
+      <section class="workspace" aria-label="Message encoder and decoder">
+        <div class="tabs" role="tablist" aria-label="Choose an action">
+          <button class="tab" id="encode-tab" role="tab" aria-selected="true" aria-controls="encode-panel">↗ &nbsp;Make a secret code</button>
+          <button class="tab" id="decode-tab" role="tab" aria-selected="false" aria-controls="decode-panel">↙ &nbsp;Reveal a message</button>
+        </div>
+
+        <section class="panel active" id="encode-panel" role="tabpanel" aria-labelledby="encode-tab">
+          <div class="field-head">
+            <label for="plain-text">Your message</label>
+            <span class="hint" id="plain-count">0 characters</span>
+          </div>
+          <textarea id="plain-text" class="message-area" placeholder="Type the message you want to share…"></textarea>
+          <div class="action-row">
+            <div class="tiny-note">Your message is converted on this device. Nothing is sent to a server.</div>
+            <button class="primary" id="encode-button" type="button">Create secret code &nbsp;→</button>
+          </div>
+          <div class="output">
+            <div class="field-head">
+              <span class="field-label">Your shareable code</span>
+              <span class="hint">Copy and send it to someone</span>
+            </div>
+            <div class="output-box empty" id="encoded-output" aria-live="polite">Your secret code will appear here.</div>
+            <div class="output-actions">
+              <button class="secondary" id="copy-code" type="button" hidden>Copy code</button>
+            </div>
+            <div class="status" id="encode-status" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="decode-panel" role="tabpanel" aria-labelledby="decode-tab">
+          <div class="field-head">
+            <label for="secret-code">Paste the secret code</label>
+            <span class="hint">It starts with HUSH1:</span>
+          </div>
+          <textarea id="secret-code" placeholder="Paste the code you received…"></textarea>
+          <div class="action-row">
+            <div class="tiny-note">Only a code made with Hush can be revealed here.</div>
+            <button class="primary" id="decode-button" type="button">Reveal message &nbsp;→</button>
+          </div>
+          <div class="output">
+            <div class="field-head"><span class="field-label">The message says</span></div>
+            <div class="output-box empty" id="decoded-output" aria-live="polite">The revealed message will appear here.</div>
+            <div class="status" id="decode-status" aria-live="polite"></div>
+          </div>
+        </section>
+      </section>
+
+      <div class="how">
+        <span class="info-icon" aria-hidden="true">i</span>
+        <span>Hush makes a convenient text encoding, not secure encryption. Anyone with the code can reveal the message, so avoid using it for passwords or sensitive information.</span>
+      </div>
+    </main>
+
+    <footer>Made for messages worth sharing quietly.</footer>
+  </div>
+
+  <script>
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    const plainText = document.getElementById("plain-text");
+    const encodedOutput = document.getElementById("encoded-output");
+    const decodedOutput = document.getElementById("decoded-output");
+    const encodeStatus = document.getElementById("encode-status");
+    const decodeStatus = document.getElementById("decode-status");
+    const copyButton = document.getElementById("copy-code");
+
+    function toBase64Url(bytes) {
+      let binary = "";
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    }
+
+    function fromBase64Url(value) {
+      if (!/^[A-Za-z0-9_-]+$/.test(value)) {
+        throw new Error("That code has an invalid format.");
+      }
+      const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+      const binary = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
+      return Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    }
+
+    function setOutput(el, text, emptyText) {
+      el.textContent = text || emptyText;
+      el.classList.toggle("empty", !text);
+    }
+
+    function switchTab(which) {
+      const isEncode = which === "encode";
+      document.getElementById("encode-tab").setAttribute("aria-selected", String(isEncode));
+      document.getElementById("decode-tab").setAttribute("aria-selected", String(!isEncode));
+      document.getElementById("encode-panel").classList.toggle("active", isEncode);
+      document.getElementById("decode-panel").classList.toggle("active", !isEncode);
+    }
+
+    document.getElementById("encode-tab").addEventListener("click", () => switchTab("encode"));
+    document.getElementById("decode-tab").addEventListener("click", () => switchTab("decode"));
+
+    plainText.addEventListener("input", () => {
+      const count = [...plainText.value].length;
+      document.getElementById("plain-count").textContent =
+        `${count} ${count === 1 ? "character" : "characters"}`;
+      encodeStatus.textContent = "";
+    });
+
+    document.getElementById("encode-button").addEventListener("click", () => {
+      const message = plainText.value;
+
+      if (!message.trim()) {
+        setOutput(encodedOutput, "", "Your secret code will appear here.");
+        copyButton.hidden = true;
+        encodeStatus.textContent = "Type a message first.";
+        return;
+      }
+
+      const code = "HUSH1:" + toBase64Url(encoder.encode(message));
+      setOutput(encodedOutput, code, "Your secret code will appear here.");
+      copyButton.hidden = false;
+      encodeStatus.textContent = "Code created. Share it with the person you choose.";
+    });
+
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(encodedOutput.textContent);
+        encodeStatus.textContent = "Copied to clipboard.";
+      } catch {
+        encodeStatus.textContent = "Select and copy the code above.";
+      }
+    });
+
+    document.getElementById("decode-button").addEventListener("click", () => {
+      const raw = document.getElementById("secret-code").value.trim();
+      decodeStatus.textContent = "";
+
+      if (!raw) {
+        setOutput(decodedOutput, "", "The revealed message will appear here.");
+        decodeStatus.textContent = "Paste a secret code first.";
+        return;
+      }
+
+      try {
+        if (!raw.startsWith("HUSH1:")) {
+          throw new Error("This doesn't look like a Hush code. Check that you copied the full code.");
+        }
+
+        const bytes = fromBase64Url(raw.slice(6));
+        const message = decoder.decode(bytes);
+        setOutput(decodedOutput, message, "(This message is empty.)");
+        decodeStatus.textContent = "Message revealed.";
+      } catch (error) {
+        setOutput(decodedOutput, "", "The revealed message will appear here.");
+        decodeStatus.textContent = error instanceof TypeError
+          ? "The code isn't valid text. Check that it was copied correctly."
+          : error.message;
+      }
+    });
+  </script>
+</body>
+</html>
